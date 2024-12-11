@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flat Price Estimator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        form {
+            max-width: 400px;
+            margin: auto;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Flat Price Estimator</h1>
+    <p>Enter the details of the flat below to estimate its price.</p>
+
+    <form id="priceForm">
+        <label for="Property_type">Property Type</label>
+        <select id="Property_type" name="Property_type" required>
+            <option value="Apartment">Apartment</option>
+            <option value="House">House</option>
+        </select>
+
+        <label for="postal_code">Postal Code</label>
+        <input type="number" id="postal_code" name="postal_code" required>
+
+        <label for="size">Size (sqm)</label>
+        <input type="number" id="size" name="size" required>
+
+        <label for="floor">Floor</label>
+        <input type="number" id="floor" name="floor">
+
+        <label for="land_size">Land Size (sqm)</label>
+        <input type="number" id="land_size" name="land_size">
+
+        <label for="energy_performance_category">Energy Performance Category</label>
+        <select id="energy_performance_category" name="energy_performance_category" required>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="E">E</option>
+            <option value="F">F</option>
+            <option value="G">G</option>
+        </select>
+
+        <label for="exposition">Exposition</label>
+        <select id="exposition" name="exposition" required>
+            <option value="North">North</option>
+            <option value="South">South</option>
+            <option value="East">East</option>
+            <option value="West">West</option>
+        </select>
+
+        <label for="nb_rooms">Number of Rooms</label>
+        <input type="number" id="nb_rooms" name="nb_rooms" required>
+
+        <label for="nb_bedrooms">Number of Bedrooms</label>
+        <input type="number" id="nb_bedrooms" name="nb_bedrooms" required>
+
+        <label for="nb_bathrooms">Number of Bathrooms</label>
+        <input type="number" id="nb_bathrooms" name="nb_bathrooms" required>
+
+        <label for="nb_parking_places">Number of Parking Places</label>
+        <input type="number" id="nb_parking_places" name="nb_parking_places">
+
+        <label for="nb_boxes">Number of Boxes</label>
+        <input type="number" id="nb_boxes" name="nb_boxes">
+
+        <label for="has_a_balcony">Has a Balcony</label>
+        <select id="has_a_balcony" name="has_a_balcony" required>
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+        </select>
+
+        <label for="nb_terraces">Number of Terraces</label>
+        <input type="number" id="nb_terraces" name="nb_terraces">
+
+        <label for="has_air_conditioning">Has Air Conditioning</label>
+        <select id="has_air_conditioning" name="has_air_conditioning" required>
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+        </select>
+
+        <button type="submit">Estimate Price</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        document.getElementById("priceForm").addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            // Gather form data into an object
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+
+            // Convert numerical fields to numbers
+            for (let key in data) {
+                if (!isNaN(data[key])) {
+                    data[key] = Number(data[key]);
+                }
+            }
+
+            try {
+                // Send data to the backend
+                const response = await fetch("http://127.0.0.1:8000/predict", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch the prediction");
+                }
+
+                // Get the response JSON
+                const result = await response.json();
+
+                // Display the result
+                document.getElementById("result").textContent =
+                    `Estimated Price: ${result.predicted_price.toFixed(2)} €`;
+            } catch (error) {
+                console.error(error);
+                document.getElementById("result").textContent =
+                    "An error occurred while fetching the prediction.";
+            }
+        });
+    </script>
+
+</body>
+</html>

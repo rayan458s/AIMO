@@ -1,18 +1,28 @@
-
-
+from AIMO import data
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.ensemble import RandomForestRegressor  # Use RandomForestClassifier if it's a classification problem
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import joblib
-#Catboost
+
+# Specify the columns to keep
+columns_to_keep = [
+    'property_type', 'postal_code', 'size', 'floor', 'land_size',
+    'energy_performance_category', 'exposition', 'nb_rooms',
+    'nb_bedrooms', 'nb_bathrooms', 'nb_parking_places', 'nb_boxes',
+    'has_a_balcony', 'nb_terraces', 'has_air_conditioning'
+]
 
 # Load data
-x_train_raw = pd.read_csv('/Users/rayan/PycharmProjects/AIMO/AIMO_challenge_data/X_train.csv')
-y_train_raw = pd.read_csv('/Users/rayan/PycharmProjects/AIMO/AIMO_challenge_data/y_train.csv')
-x_test_raw = pd.read_csv('/Users/rayan/PycharmProjects/AIMO/AIMO_challenge_data/X_test.csv')
-y_test_raw = pd.read_csv('/Users/rayan/PycharmProjects/AIMO/AIMO_challenge_data/y_test.csv')
+x_train_raw = pd.read_csv('/Users/rayan/PycharmProjects/rakam-systems-service-template/AIMO/data/X_train.csv')
+y_train_raw = pd.read_csv('/Users/rayan/PycharmProjects/rakam-systems-service-template/AIMO/data/y_train.csv')
+x_test_raw = pd.read_csv('/Users/rayan/PycharmProjects/rakam-systems-service-template/AIMO/data/X_test.csv')
+y_test_raw = pd.read_csv('/Users/rayan/PycharmProjects/rakam-systems-service-template/AIMO/data/y_test.csv')
+
+# Keep only the specified  (Property_type, postal_code, 'size', 'floor','land_size','energy_performance_category','exposition', 'nb_rooms', 'nb_bedrooms', 'nb_bathrooms', 'nb_parking_places', 'nb_boxes', 'has_a_balcony', 'nb_terraces', 'has_air_conditioning'
+x_train_raw = x_train_raw[columns_to_keep]
+x_test_raw = x_test_raw[columns_to_keep]
 
 # Separate the numerical and categorical columns
 num_cols_train = x_train_raw.select_dtypes(include=['int64', 'float64']).columns
@@ -24,53 +34,60 @@ cat_cols_test = x_test_raw.select_dtypes(include=['object']).columns
 x_train_raw[num_cols_train] = x_train_raw[num_cols_train].fillna(x_train_raw[num_cols_train].mean())
 x_test_raw[num_cols_test] = x_test_raw[num_cols_test].fillna(x_test_raw[num_cols_test].mean())
 
-
 # Impute missing values in categorical columns with the most frequent value (mode)
 x_train_raw[cat_cols_train] = x_train_raw[cat_cols_train].apply(lambda x: x.fillna(x.mode()[0]))
 x_test_raw[cat_cols_test] = x_test_raw[cat_cols_test].apply(lambda x: x.fillna(x.mode()[0]))
 
-# One-hot encode the categorical columns and drop one of the dummy column (since RF can only intake numerical values)
+# One-hot encode the categorical columns
 x_train = pd.get_dummies(x_train_raw, drop_first=True)
 x_test = pd.get_dummies(x_test_raw, drop_first=True)
 
 # Align columns of train and test sets after one-hot encoding
 x_train, x_test = x_train.align(x_test, join='left', axis=1, fill_value=0)
 
-# Transform dataframe into time series
+# Convert target variable to a Series
 y_train = y_train_raw.squeeze()
 y_test = y_test_raw.squeeze()
 
-print(y_train.head())
-print(y_test.head())
+# # Debugging: Check for missing values in the final preprocessed data
+# print("Missing values in x_train after preprocessing:", x_train.isnull().any().any())
+# print("Missing values in x_test after preprocessing:", x_test.isnull().any().any())
+# print("Missing values in y_train:", y_train.isnull().any())
+# print("Missing values in y_test:", y_test.isnull().any())
 
-#
-# # Initialize the Random Forest model
-# rf_model = RandomForestRegressor(n_estimators=100, random_state=42)  # You can adjust n_estimators
-#
-# # Fit the model on the training data
-# print("\nStarting training the model")
-# rf_model.fit(x_train, y_train)
-#
-# #Save the model to a file
-# joblib.dump(rf_model, 'random_forest_model.pk1')
-#
-# # # Load the saved model from the file
-# # rf_model_loaded = joblib.load('random_forest_model.pkl')
-#
-# # Make predictions on the test set
-# y_pred = rf_model.predict(x_test)
-#
-# # Calculate evaluation metrics
-# mae = mean_absolute_error(y_test, y_pred)
-# mse = mean_squared_error(y_test, y_pred)
-# r2 = r2_score(y_test, y_pred)
-#
-# # Print the evaluation results
-# print(f"Mean Absolute Error: {mae}")
-# print(f"Mean Squared Error: {mse}")
-# print(f"R-squared: {r2}")
+# Initialize the Random Forest model
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# Fit the model on the training data
+print("\nStarting training the model...")
+rf_model.fit(x_train, y_train)
+
+# Save the model to a file
+joblib.dump(rf_model, 'random_forest_model.pk1')
+print("\nModel saved successfully.")
+
+# Make predictions on the test set
+y_pred = rf_model.predict(x_test)
+
+# Calculate evaluation metrics
+mae = mean_absolute_error(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+# Print the evaluation results
+print(f"\nMean Absolute Error (MAE): {mae}")
+print(f"Mean Squared Error (MSE): {mse}")
+print(f"R-squared (R2): {r2}")
 
 
+
+
+# # Visualize predictions vs actuals
+# sns.scatterplot(x=y_test, y=y_pred)
+# plt.xlabel("Actual Prices")
+# plt.ylabel("Predicted Prices")
+# plt.title("Actual vs Predicted Prices")
+# plt.show()
 
 # ##################### GRID SEARCH
 #
